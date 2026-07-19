@@ -15,12 +15,6 @@
                  "Malgun Gothic", "Noto Sans KR", sans-serif;
   }
 
-  /* ===========================================================
-     전체를 감싸는 컨테이너
-     - position: fixed 대신 일반 문서 흐름(normal flow)의
-       높이를 명확히 100vh로 지정해서, 어떤 뷰어/미리보기 환경에서
-       열어도 화면이 찌그러지거나 안 보이는 문제를 방지합니다.
-  =========================================================== */
   .page {
     position: relative;
     width: 100%;
@@ -31,11 +25,6 @@
 
   /* ===========================================================
      배경 영역
-     - 지금은 별도 사진 파일 없이 바로 실행되도록
-       SVG로 그린 노을 풍경을 배경으로 임시 사용 중입니다.
-     - 실제 사진을 쓰려면 아래 <div id="bgWrap"> 안의
-       <svg>...</svg> 전체를 지우고
-       <img src="my-photo.webp" alt="background"> 한 줄로 교체하면 됩니다.
   =========================================================== */
   .bg-wrap {
     position: absolute;
@@ -45,7 +34,6 @@
     transition: filter 0.9s ease;
   }
 
-  .bg-wrap svg,
   .bg-wrap img {
     width: 100%;
     height: 100%;
@@ -60,7 +48,6 @@
   /* ===========================================================
      ★★★ 수정 포인트 1: 숨겨진 클릭(터치) 영역 ★★★
      top / left 를 조절해 사진 속 원하는 위치로 옮기세요.
-     (퍼센트 기준이라 화면 크기가 달라져도 비율은 유지됩니다)
   =========================================================== */
   .secret-btn {
     position: absolute;
@@ -85,9 +72,7 @@
     50% { box-shadow: 0 0 0 14px rgba(255,255,255,0); }
   }
 
-  .secret-btn.hidden {
-    display: none;
-  }
+  .secret-btn.hidden { display: none; }
 
   .hint-text {
     position: absolute;
@@ -104,7 +89,7 @@
   .hint-text.hidden { opacity: 0; }
 
   /* ===========================================================
-     편지지 영역
+     편지 오버레이 (뒤 배경 어둡게)
   =========================================================== */
   .letter-overlay {
     position: absolute;
@@ -126,155 +111,159 @@
     visibility: visible;
   }
 
-  .letter-paper {
+  /* 닫기 버튼: 카드 회전과 상관없이 항상 같은 자리에 고정 */
+  .close-btn {
+    position: absolute;
+    top: 6%;
+    right: 7%;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===========================================================
+     카드 뒤집기(flip) 구조
+     - flip-card : 화면 중앙에 나타나는 애니메이션(확대/페이드인) 담당
+     - flip-card-inner : 실제로 Y축으로 180도 회전하는 요소
+     - flip-front : 앞면 (닫힌 편지지 느낌의 카드)
+     - flip-back : 뒷면 (실제 손편지 사진)
+  =========================================================== */
+  .flip-card {
     width: 100%;
-    max-width: 420px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background: linear-gradient(135deg, #fdf6e9 0%, #f7ecd8 100%);
-    border-radius: 6px;
-    padding: 36px 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    max-width: 380px;
+    aspect-ratio: 3 / 4;         /* 카드 비율. 편지 사진 비율에 맞게 조절 가능 */
+    max-height: 78vh;
+    perspective: 1400px;
     transform: translateY(40px) scale(0.92);
     opacity: 0;
     transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
-    position: relative;
   }
 
-  .letter-overlay.show .letter-paper {
+  .letter-overlay.show .flip-card {
     transform: translateY(0) scale(1);
     opacity: 1;
   }
 
-  .letter-paper::before {
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.9s cubic-bezier(0.65, 0.05, 0.36, 1);
+  }
+
+  .flip-card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flip-face {
+    position: absolute;
+    inset: 0;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+
+  /* 앞면: 닫혀있는 편지지 (한지/아이보리 톤) */
+  .flip-front {
+    background: linear-gradient(135deg, #fdf6e9 0%, #f7ecd8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flip-front::before {
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: 6px;
     background-image: repeating-linear-gradient(
       0deg,
-      rgba(150, 120, 70, 0.04),
-      rgba(150, 120, 70, 0.04) 1px,
+      rgba(150, 120, 70, 0.05),
+      rgba(150, 120, 70, 0.05) 1px,
       transparent 1px,
       transparent 28px
     );
-    pointer-events: none;
   }
 
-  .letter-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: #6b4e2e;
-    margin-bottom: 18px;
-    letter-spacing: 0.5px;
+  .flip-front-icon {
+    width: 46px;
+    height: 46px;
+    opacity: 0.55;
     position: relative;
   }
 
-  /* ===========================================================
-     ★★★ 수정 포인트 2: 편지 본문 텍스트는
-     아래 <div class="letter-body" id="letterBody"> 안쪽을 수정하세요.
-     줄바꿈은 그대로 적용됩니다.
-  =========================================================== */
-  .letter-body {
-    font-size: 15px;
-    line-height: 1.9;
-    color: #4a3a26;
-    white-space: pre-line;
-    word-break: keep-all;
-    position: relative;
+  /* 뒷면: 실제 손편지 사진 */
+  .flip-back {
+    transform: rotateY(180deg);
+    background: #fdf9f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .letter-signature {
-    margin-top: 26px;
-    text-align: right;
-    font-size: 14px;
-    color: #8a6d45;
-    position: relative;
+  .flip-back img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;  /* 편지 전체 내용이 잘리지 않도록 */
+    display: block;
   }
-
-  .close-btn {
-    position: absolute;
-    top: 10px;
-    right: 14px;
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #a78a5e;
-    cursor: pointer;
-    line-height: 1;
-    padding: 6px;
-  }
-
-  .letter-paper::-webkit-scrollbar { width: 4px; }
-  .letter-paper::-webkit-scrollbar-thumb { background: rgba(150,120,70,0.3); border-radius: 2px; }
 </style>
 </head>
 <body>
 
   <div class="page">
 
-    <!-- 배경: 지금은 별도 파일 없이 바로 실행되도록 SVG 노을 풍경을 사용 중 -->
+    <!-- ===========================================================
+         ★★★ 수정 포인트 2: 배경 사진 파일명 ★★★
+         배경.jpg 파일이 이 HTML과 같은 폴더(저장소 루트)에 있어야 합니다.
+    =========================================================== -->
     <div class="bg-wrap" id="bgWrap">
-      <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#2b2150"/>
-            <stop offset="35%" stop-color="#6c3a6e"/>
-            <stop offset="60%" stop-color="#d9683f"/>
-            <stop offset="100%" stop-color="#f6b364"/>
-          </linearGradient>
-          <radialGradient id="sun" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#fff3d6"/>
-            <stop offset="60%" stop-color="#ffcf7a"/>
-            <stop offset="100%" stop-color="rgba(255,207,122,0)"/>
-          </radialGradient>
-          <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#7a3c52"/>
-            <stop offset="100%" stop-color="#1b1430"/>
-          </linearGradient>
-        </defs>
-
-        <rect x="0" y="0" width="400" height="800" fill="url(#sky)"/>
-        <circle cx="220" cy="430" r="160" fill="url(#sun)"/>
-        <circle cx="220" cy="430" r="68" fill="#ffe4ac"/>
-
-        <ellipse cx="90" cy="230" rx="90" ry="16" fill="rgba(255,255,255,0.12)"/>
-        <ellipse cx="300" cy="300" rx="70" ry="12" fill="rgba(255,255,255,0.10)"/>
-        <ellipse cx="150" cy="160" rx="60" ry="10" fill="rgba(255,255,255,0.08)"/>
-
-        <rect x="0" y="460" width="400" height="340" fill="url(#sea)"/>
-        <ellipse cx="220" cy="462" rx="160" ry="14" fill="#ffd79b" opacity="0.5"/>
-        <ellipse cx="220" cy="490" rx="120" ry="10" fill="#ffd79b" opacity="0.3"/>
-        <ellipse cx="220" cy="520" rx="90" ry="8" fill="#ffd79b" opacity="0.2"/>
-
-        <path d="M70 200 q8 -10 16 0 q8 -10 16 0" stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M250 170 q7 -9 14 0 q7 -9 14 0" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none" stroke-linecap="round"/>
-      </svg>
+      <img src="배경.jpg" alt="background">
     </div>
 
     <!-- 숨겨진 비밀 클릭 버튼 -->
     <button class="secret-btn" id="secretBtn" aria-label="편지 열기"></button>
     <div class="hint-text" id="hintText">✦ 사진 속 빛나는 부분을 살짝 눌러보세요 ✦</div>
 
-    <!-- 편지지 오버레이 -->
+    <!-- 편지 오버레이 -->
     <div class="letter-overlay" id="letterOverlay">
-      <div class="letter-paper">
-        <button class="close-btn" id="closeBtn">✕</button>
-        <div class="letter-title">To. 너에게</div>
+      <button class="close-btn" id="closeBtn">✕</button>
 
-        <div class="letter-body" id="letterBody">안녕,
+      <div class="flip-card">
+        <div class="flip-card-inner" id="flipInner">
 
-오랜만에 이렇게 편지를 써.
-평소엔 잘 못했던 말들을
-이 작은 편지지에 담아봤어.
+          <!-- 앞면: 닫힌 편지지 (간단한 장식 아이콘) -->
+          <div class="flip-face flip-front">
+            <svg class="flip-front-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 21C12 21 3 14.9 3 9.5C3 6.46 5.46 4 8.5 4C10.24 4 11.68 4.94 12 6.09C12.32 4.94 13.76 4 15.5 4C18.54 4 21 6.46 21 9.5C21 14.9 12 21 12 21Z"
+                stroke="#8a6d45" stroke-width="1.4" fill="rgba(138,109,69,0.08)"/>
+            </svg>
+          </div>
 
-항상 고맙고, 늘 응원할게.
-오늘도 좋은 하루 보내길 바라.
+          <!-- 뒷면: 실제 손편지 사진 -->
+          <!-- ===========================================================
+               ★★★ 수정 포인트 3: 편지 사진 파일명 ★★★
+               편지.JPG 파일이 이 HTML과 같은 폴더(저장소 루트)에 있어야 합니다.
+          =========================================================== -->
+          <div class="flip-face flip-back">
+            <img src="편지.JPG" alt="손편지" id="letterImage">
+          </div>
 
-- 너의 친구가</div>
-
-        <div class="letter-signature">From. 마음을 담아</div>
+        </div>
       </div>
+
     </div>
 
   </div>
@@ -286,17 +275,32 @@
     var hintText = document.getElementById('hintText');
     var letterOverlay = document.getElementById('letterOverlay');
     var closeBtn = document.getElementById('closeBtn');
+    var flipInner = document.getElementById('flipInner');
+    var flipTimer = null;
 
     function openLetter() {
       bgWrap.classList.add('blurred');
       letterOverlay.classList.add('show');
       secretBtn.classList.add('hidden');
       hintText.classList.add('hidden');
+
+      /* 카드가 화면에 나타난 뒤, 살짝 시간차를 두고
+         Y축으로 회전하며 뒷면(편지 사진)이 드러나게 함 */
+      clearTimeout(flipTimer);
+      flipTimer = setTimeout(function () {
+        flipInner.classList.add('flipped');
+      }, 500);
     }
 
     function closeLetter() {
       bgWrap.classList.remove('blurred');
       letterOverlay.classList.remove('show');
+      secretBtn.classList.remove('hidden');
+      hintText.classList.remove('hidden');
+
+      /* 다시 열었을 때 앞면부터 다시 보이도록 초기화 */
+      clearTimeout(flipTimer);
+      flipInner.classList.remove('flipped');
     }
 
     secretBtn.addEventListener('click', openLetter);
