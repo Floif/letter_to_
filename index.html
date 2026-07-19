@@ -218,6 +218,82 @@
     height: 100%;
     object-fit: contain;  /* 편지 전체 내용이 잘리지 않도록 */
     display: block;
+    cursor: zoom-in;
+  }
+
+  /* 편지 사진 아래 "눌러서 크게 보기" 안내 힌트 */
+  .zoom-hint {
+    position: absolute;
+    bottom: -34px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .zoom-hint.show { opacity: 1; }
+
+  /* ===========================================================
+     확대보기(라이트박스)
+     - 편지 사진을 탭하면 화면 전체에 크게 띄워서 자세히 볼 수 있게 함
+     - 확대된 이미지를 한 번 더 탭하면 탭한 위치를 중심으로 살짝 더 확대됨
+  =========================================================== */
+  .lightbox {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.94);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease;
+    overflow: hidden;
+  }
+
+  .lightbox.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.35s ease;
+    cursor: zoom-in;
+    touch-action: pan-x pan-y;
+  }
+
+  .lightbox img.zoomed {
+    cursor: zoom-out;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 6%;
+    right: 7%;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 51;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>
 </head>
@@ -262,8 +338,16 @@
           </div>
 
         </div>
+
+        <div class="zoom-hint" id="zoomHint">🔍 사진을 눌러 크게 보기</div>
       </div>
 
+    </div>
+
+    <!-- 확대보기(라이트박스): 편지 사진을 탭하면 여기에 크게 표시됨 -->
+    <div class="lightbox" id="lightbox">
+      <button class="lightbox-close" id="lightboxClose">✕</button>
+      <img src="편지.JPG" alt="손편지 확대" id="lightboxImg">
     </div>
 
   </div>
@@ -276,7 +360,13 @@
     var letterOverlay = document.getElementById('letterOverlay');
     var closeBtn = document.getElementById('closeBtn');
     var flipInner = document.getElementById('flipInner');
+    var zoomHint = document.getElementById('zoomHint');
+    var letterImage = document.getElementById('letterImage');
+    var lightbox = document.getElementById('lightbox');
+    var lightboxImg = document.getElementById('lightboxImg');
+    var lightboxClose = document.getElementById('lightboxClose');
     var flipTimer = null;
+    var hintTimer = null;
 
     function openLetter() {
       bgWrap.classList.add('blurred');
@@ -290,6 +380,12 @@
       flipTimer = setTimeout(function () {
         flipInner.classList.add('flipped');
       }, 500);
+
+      /* 뒤집기 애니메이션이 끝난 뒤 "눌러서 크게 보기" 힌트 표시 */
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(function () {
+        zoomHint.classList.add('show');
+      }, 1450);
     }
 
     function closeLetter() {
@@ -300,8 +396,52 @@
 
       /* 다시 열었을 때 앞면부터 다시 보이도록 초기화 */
       clearTimeout(flipTimer);
+      clearTimeout(hintTimer);
       flipInner.classList.remove('flipped');
+      zoomHint.classList.remove('show');
     }
+
+    /* ===========================================================
+       확대보기(라이트박스) 로직
+       - 뒤집힌 상태에서 편지 사진을 탭하면 전체화면 확대보기가 열림
+       - 확대보기 안에서 사진을 탭하면 탭한 지점을 중심으로 확대/축소 토글
+    =========================================================== */
+    function openLightbox() {
+      if (!flipInner.classList.contains('flipped')) return; // 아직 안 뒤집혔으면 무시
+      lightboxImg.classList.remove('zoomed');
+      lightboxImg.style.transform = 'scale(1)';
+      lightbox.classList.add('show');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('show');
+      lightboxImg.classList.remove('zoomed');
+      lightboxImg.style.transform = 'scale(1)';
+    }
+
+    function toggleZoom(e) {
+      if (lightboxImg.classList.contains('zoomed')) {
+        lightboxImg.classList.remove('zoomed');
+        lightboxImg.style.transform = 'scale(1)';
+        return;
+      }
+      var rect = lightboxImg.getBoundingClientRect();
+      var touch = (e.touches && e.touches[0]) ? e.touches[0] : e;
+      var offsetX = ((touch.clientX - rect.left) / rect.width) * 100;
+      var offsetY = ((touch.clientY - rect.top) / rect.height) * 100;
+      lightboxImg.style.transformOrigin = offsetX + '% ' + offsetY + '%';
+      lightboxImg.classList.add('zoomed');
+      lightboxImg.style.transform = 'scale(2.4)';
+    }
+
+    letterImage.addEventListener('click', openLightbox);
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightboxImg.addEventListener('click', toggleZoom);
+
+    /* 사진이 아닌 어두운 배경 부분을 탭하면 확대보기 닫기 */
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
 
     secretBtn.addEventListener('click', openLetter);
     closeBtn.addEventListener('click', closeLetter);
